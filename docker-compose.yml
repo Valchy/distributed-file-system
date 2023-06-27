@@ -4,7 +4,7 @@ services:
         image: ubuntu:latest
         container_name: name-server
         build:
-            context: ./src/name-server
+            context: .
             dockerfile: Dockerfile
         ports:
             - 9000:80
