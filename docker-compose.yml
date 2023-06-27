@@ -1,8 +1,8 @@
 version: '3'
 services:
-    name_server:
+    file_system:
         image: ubuntu:latest
-        container_name: name-server
+        container_name: file-system
         build:
             context: .
             dockerfile: Dockerfile

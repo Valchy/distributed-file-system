@@ -1,101 +1,93 @@
 const express = require('express');
-const zlib = require('zlib');
+const bodyParser = require('body-parser');
 const fs = require('fs');
-const crypto = require('crypto');
 
 const app = express();
 const port = 80;
-const chunksFolder = './chunks/';
+const chunksFolder = './chunks';
+
+// Middleware to parse JSON request bodies
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Create the chunks folder if it doesn't exist
 if (!fs.existsSync(chunksFolder)) {
 	fs.mkdirSync(chunksFolder);
 }
 
+function content(text) {
+	return `<center>${text}<br/><br/><a href="/">Go back</a></center>`;
+}
+
 // Store endpoint
 app.post('/store', (req, res) => {
 	const { filename, text } = req.body;
-	const textBuffer = Buffer.from(text, 'utf8');
-	const compressedData = zlib.brotliCompressSync(textBuffer);
-	const chunkSize = 1024; // 1KB
+	const filenamePath = `${__dirname}/${chunksFolder}/${filename}`;
 
-	const fileId = crypto.createHash('md5').update(textBuffer).digest('hex');
-	const fileChunks = [];
-
-	for (let i = 0; i < compressedData.length; i += chunkSize) {
-		const chunk = compressedData.slice(i, i + chunkSize);
-		const chunkId = crypto.createHash('md5').update(chunk).digest('hex');
-		const chunkFilename = `${chunksFolder}${chunkId}`;
-
-		if (!fs.existsSync(chunkFilename)) {
-			fs.writeFileSync(chunkFilename, chunk);
-		}
-
-		fileChunks.push(chunkId);
-	}
-
-	const fileMetadata = {
-		fileId,
-		filename,
-		chunks: fileChunks
-	};
-
-	// Store the metadata for file reconstruction during read
-
-	res.json({ fileId });
+	fs.writeFileSync(filenamePath, text);
+	res.send(content('File saved successfully!'));
 });
 
 // Read endpoint
-app.get('/read/:id', (req, res) => {
-	const { id } = req.params;
+app.get('/read/:filename', (req, res) => {
+	const { filename } = req.params;
+	const filenamePath = `${__dirname}/${chunksFolder}/${filename}`;
 
-	// Retrieve file metadata based on the id
+	if (fs.existsSync(filenamePath)) {
+		const fileData = fs.readFileSync(filenamePath, 'utf-8');
 
-	const fileChunks = []; // Array to store the chunks
-
-	for (const chunkId of fileMetadata.chunks) {
-		const chunkFilename = `${chunksFolder}${chunkId}`;
-
-		const chunk = fs.readFileSync(chunkFilename);
-		fileChunks.push(chunk);
+		res.send(content('<h3>File Content:</h3>' + fileData));
+	} else {
+		res.status(404).send(content('File not found'));
 	}
-
-	const fileData = Buffer.concat(fileChunks);
-	const decompressedData = zlib.brotliDecompressSync(fileData);
-
-	res.set('Content-Encoding', 'br');
-	res.send(decompressedData);
 });
 
 // Delete endpoint
 app.get('/delete/:id', (req, res) => {
 	const { id } = req.params;
+	const filenamePath = `${__dirname}/${chunksFolder}/${id}`;
 
-	// Retrieve file metadata based on the id
+	if (fs.existsSync(filenamePath)) {
+		fs.unlinkSync(filenamePath);
 
-	for (const chunkId of fileMetadata.chunks) {
-		const chunkFilename = `${chunksFolder}${chunkId}`;
-
-		fs.unlinkSync(chunkFilename);
+		res.send(content('File deleted successfully!'));
+	} else {
+		res.status(404).send(content('File not found'));
 	}
-
-	// Remove the file metadata
-
-	res.send('File deleted successfully.');
 });
 
 // Get size endpoint
 app.get('/getsize/:id', (req, res) => {
 	const { id } = req.params;
+	const filenamePath = `${__dirname}/${chunksFolder}/${id}`;
 
-	// Retrieve file metadata based on the id
+	if (fs.existsSync(filenamePath)) {
+		const fileMetadata = fs.readFileSync(filenamePath, 'utf-8');
+		const totalSize = fileMetadata.length;
+		res.send(content(`File size is: ${totalSize} KB`));
+	} else {
+		res.status(404).send(content('Error getting file size'));
+	}
+});
 
-	const totalSize = fileMetadata.chunks.length * 1024; // Assuming all chunks are 1KB
+// Get all files
+app.get('/files', (req, res) => {
+	const folderPath = `${__dirname}/${chunksFolder}`;
 
-	res.json({ size: totalSize });
+	fs.readdir(folderPath, (err, files) => {
+		if (err) {
+			res.status(500).json({ success: false });
+		} else {
+			res.json({ success: true, files });
+		}
+	});
+});
+
+app.get('/', (req, res) => {
+	res.sendFile(__dirname + '/index.html');
 });
 
 // Start the server
 app.listen(port, () => {
-	console.log(`Name server running on http://localhost:${port}`);
+	console.log(`File system running on http://localhost:${port}`);
 });
