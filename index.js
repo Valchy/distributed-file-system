@@ -36,7 +36,7 @@ app.get('/read/:filename', (req, res) => {
 	if (fs.existsSync(filenamePath)) {
 		const fileData = fs.readFileSync(filenamePath, 'utf-8');
 
-		res.send(content('<h3>File Content:</h3>' + fileData));
+		res.send(content('<br/><h2>File Content:</h2>' + fileData + `<br/><br/><a href="/delete/${filename}">Delete file</a>`));
 	} else {
 		res.status(404).send(content('File not found'));
 	}
@@ -64,6 +64,7 @@ app.get('/getsize/:id', (req, res) => {
 	if (fs.existsSync(filenamePath)) {
 		const fileMetadata = fs.readFileSync(filenamePath, 'utf-8');
 		const totalSize = fileMetadata.length;
+
 		res.send(content(`File size is: ${totalSize} KB`));
 	} else {
 		res.status(404).send(content('Error getting file size'));
