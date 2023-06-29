@@ -43,9 +43,9 @@ app.get('/read/:filename', (req, res) => {
 });
 
 // Delete endpoint
-app.get('/delete/:id', (req, res) => {
-	const { id } = req.params;
-	const filenamePath = `${__dirname}/${chunksFolder}/${id}`;
+app.get('/delete/:filename', (req, res) => {
+	const { filename } = req.params;
+	const filenamePath = `${__dirname}/${chunksFolder}/${filename}`;
 
 	if (fs.existsSync(filenamePath)) {
 		fs.unlinkSync(filenamePath);
@@ -57,9 +57,9 @@ app.get('/delete/:id', (req, res) => {
 });
 
 // Get size endpoint
-app.get('/getsize/:id', (req, res) => {
-	const { id } = req.params;
-	const filenamePath = `${__dirname}/${chunksFolder}/${id}`;
+app.get('/getsize/:filename', (req, res) => {
+	const { filename } = req.params;
+	const filenamePath = `${__dirname}/${chunksFolder}/${filename}`;
 
 	if (fs.existsSync(filenamePath)) {
 		const fileMetadata = fs.readFileSync(filenamePath, 'utf-8');
